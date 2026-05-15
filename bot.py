@@ -107,7 +107,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # Запуск бота
-def main():
+import asyncio
+
+async def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
@@ -121,8 +123,16 @@ def main():
 
     print("Бот запущен...")
 
-    app.run_polling()
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling()
 
+    while True:
+        await asyncio.sleep(3600)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
 
 # Точка входа
 if __name__ == "__main__":
