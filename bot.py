@@ -8,7 +8,6 @@ from telegram.ext import (
 )
 
 import openai
-import asyncio
 from config import TELEGRAM_TOKEN, OPENAI_API_KEY
 
 # OpenAI API
@@ -136,7 +135,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ---------------- ЗАПУСК БОТА ----------------
 
-async def main():
+def main():
 
     app = Application.builder().token(TELEGRAM_TOKEN).build()
 
@@ -151,14 +150,9 @@ async def main():
 
     print("Бот запущен...")
 
-    await app.initialize()
-    await app.start()
-    await app.updater.start_polling()
-
-    while True:
-        await asyncio.sleep(3600)
+    app.run_polling()
 
 # ---------------- MAIN ----------------
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()
