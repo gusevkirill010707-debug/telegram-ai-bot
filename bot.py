@@ -8,107 +8,115 @@ from telegram.ext import (
 )
 
 import openai
+import asyncio
 from config import TELEGRAM_TOKEN, OPENAI_API_KEY
 
-# Подключение OpenAI
+# OpenAI API
 openai.api_key = OPENAI_API_KEY
 
-# Меню кнопок
-MENU = [
-    ["📚 Расписание", "🤖 Помощь с учебой"],
-    ["📞 Контакты", "👨‍💻 Администратор"],
-]
+# Главное меню
+main_keyboard = ReplyKeyboardMarkup(
+    [
+        ["📚 Расписание"],
+        ["🤖 Помощь"],
+    ],
+    resize_keyboard=True
+)
+
+# Подменю расписания
+schedule_keyboard = ReplyKeyboardMarkup(
+    [
+        ["📞 Расписание звонков"],
+        ["📅 Расписание занятий"],
+        ["⬅️ Главное меню"]
+    ],
+    resize_keyboard=True
+)
 
 
 # Команда /start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_name = update.effective_user.first_name
-
-    text = (
-        f"Привет, {user_name}! 👋\n\n"
-        "Я интеллектуальный Telegram-бот помощник.\n"
-        "Выберите действие из меню."
-    )
-
-    keyboard = ReplyKeyboardMarkup(
-        MENU,
-        resize_keyboard=True,
-    )
-
     await update.message.reply_text(
-        text,
-        reply_markup=keyboard
+        "Привет 👋\nВыберите действие:",
+        reply_markup=main_keyboard
     )
+
+
+# OpenAI функция
+def ask_openai(question):
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {
+                "role": "system",
+                "content": "Ты полезный помощник."
+            },
+            {
+                "role": "user",
+                "content": question
+            }
+        ]
+    )
+
+    return response.choices[0].message.content
 
 
 # Обработка сообщений
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_message = update.message.text
+    text = update.message.text
 
-    # Расписание
-    if user_message == "📚 Расписание":
+    # Открыть меню расписания
+    if text == "📚 Расписание":
         await update.message.reply_text(
-            "📅 Сегодня пары с 9:00 до 15:20."
+            "Выберите нужный пункт:",
+            reply_markup=schedule_keyboard
         )
         return
 
-    # Контакты
-    if user_message == "📞 Контакты":
-        await update.message.reply_text(
-            "☎️ Деканат: +7 (999) 123-45-67\n"
-            "📧 Email: support@university.ru"
+    # Расписание звонков
+    if text == "📞 Расписание звонков":
+        await update.message.reply_photo(
+            photo=open("zvonki.jpg", "rb")
         )
         return
 
-    # Администратор
-    if user_message == "👨‍💻 Администратор":
-        await update.message.reply_text(
-            "Напишите ваш вопрос. Администратор скоро ответит."
+    # Расписание занятий
+    if text == "📅 Расписание занятий":
+        await update.message.reply_photo(
+            photo=open("schedule.jpg", "rb")
         )
         return
 
-    # Помощь с учебой
-    if user_message == "🤖 Помощь с учебой":
+    # Возврат в главное меню
+    if text == "⬅️ Главное меню":
         await update.message.reply_text(
-            "Напишите тему или вопрос по учебе."
+            "Главное меню:",
+            reply_markup=main_keyboard
         )
         return
 
-    # ИИ-ответ
+    # Помощь
+    if text == "🤖 Помощь":
+        await update.message.reply_text(
+            "Напишите ваш вопрос."
+        )
+        return
+
+    # Ответ от OpenAI
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "Ты помощник для студентов. "
-                        "Отвечай кратко и понятно."
-                    ),
-                },
-                {
-                    "role": "user",
-                    "content": user_message,
-                },
-            ],
-            max_tokens=300,
-        )
+        response = ask_openai(text)
 
-        bot_reply = response["choices"][0]["message"]["content"]
-
-        await update.message.reply_text(bot_reply)
+        await update.message.reply_text(response)
 
     except Exception as e:
-        await update.message.reply_text(
-            "⚠️ Ошибка подключения к ИИ."
-        )
-
         print(e)
+
+        await update.message.reply_text(
+            "Ошибка подключения к OpenAI."
+        )
 
 
 # Запуск бота
-import asyncio
-
 async def main():
     app = Application.builder().token(TELEGRAM_TOKEN).build()
 
@@ -133,7 +141,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-# Точка входа
-if __name__ == "__main__":
-    main()
